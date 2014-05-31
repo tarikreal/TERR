@@ -212,4 +212,3 @@ public class ClassicPcapExample {
 	  return ipAddress;
   } // End of asIp
 }
-/** Allahou Akbar Kabira oualhamdou lilahi Kathira !**/
