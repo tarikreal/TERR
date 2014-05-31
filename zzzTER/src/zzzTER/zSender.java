@@ -2,6 +2,8 @@ package zzzTER;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -30,7 +32,7 @@ import javax.crypto.ShortBufferException;
 public class zSender {
 	public static Socket socket;
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		try {
 			Security.addProvider(new org.bouncycastle.jce.provider.BouncyCastleProvider());
 			try {
@@ -38,33 +40,34 @@ public class zSender {
 				InetAddress address = InetAddress.getByName(host);
 				int port = 25000;
 				socket = new Socket(address, port);
+				
 				KeyPairGenerator kpg = KeyPairGenerator
 						.getInstance("RSA", "BC");
 				KeyPair kp = kpg.generateKeyPair();
 
 				/** OuputStreams **/
-				OutputStream os = socket.getOutputStream();
-				OutputStreamWriter osw = new OutputStreamWriter(os);
-				BufferedWriter bw = new BufferedWriter(osw);
+				DataOutputStream dos = new DataOutputStream(
+						socket.getOutputStream());
 
 				/** InputStreams **/
-				InputStream is = socket.getInputStream();
-				InputStreamReader isw = new InputStreamReader(is);
-				BufferedReader br = new BufferedReader(isw);
+				//
+				DataInputStream dis = new DataInputStream(
+						socket.getInputStream());
 
 				/** KeyExchange **/
 
 				/** Send public key **/
-
+                 
 				byte[] publickey = kp.getPublic().getEncoded();
-				sendPublicKey(bw,publickey);
-
+				
+				
+				sendPublicKeybyDOS(dos, publickey);
+           
 				/** Receive public key from the remote **/
-				byte[] remotePublicKey = receivePublicKey(br);
 				
 				
-				
-				
+				byte[] remotePublicKey = receivePublicKeybyDIS(dis);
+			socket.setKeepAlive(true);
 			} catch (NoSuchAlgorithmException nsae) {
 				nsae.printStackTrace();
 			} catch (NoSuchProviderException nspe) {
@@ -75,40 +78,9 @@ public class zSender {
 		} // End of try/catch
 	} // End of main()
 
-	public static void sendPublicKey(BufferedWriter bw,
-			byte[] key) {
-		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-		Date date = new Date();
-		try {
-			// StringBuilder sb = new StringBuilder("10");
-			/** Send the message **/
-			String SendMessage = new String(key)+System.getProperty(System.lineSeparator());
-			bw.write(SendMessage);
-			
-			
-			System.out.println("Public key sent at ... "+SendMessage
-					+"   "+ dateFormat.format(date)+ "Length of the message" + SendMessage.length());
-			bw.flush();
-			
-		} catch (IOException e) {
-			e.printStackTrace(); 
-		}// End of try/catch block
-		
-	} // End of sendPublicKey
+	
 
-	public static byte[] receivePublicKey(BufferedReader br) throws IOException {
-		/** Date Format **/
-		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
-		Date date = new Date();
-		StringBuilder sb = new StringBuilder();
-		String received= br.readLine();
-		/** Receive the message **/
-		
-		System.out.println("Message received : " + received + " at ... " 
-				+ dateFormat.format(date));
-		return received.getBytes();
-
-	} // End of receivePublicKey
+	
 
 	public static byte[] cipherMode(byte[] input, Cipher cipher,
 			KeyPair encryptionKey) throws NoSuchAlgorithmException,
@@ -121,7 +93,7 @@ public class zSender {
 		ctLength += cipher.doFinal(cipherText, ctLength);
 		String temp = new String(cipherText);
 		return cipherText;
-	} // End of cipherMode()
+	} // End ofcipherMode()
 
 	public static byte[] decipheredMode(byte[] cipherText, Cipher cipher,
 			KeyPair encryptionKey) throws ShortBufferException,
@@ -153,5 +125,41 @@ public class zSender {
 		return newDecipheredNumber;
 	} // End of makeFormat()
 
+	public static void sendPublicKeybyDOS(DataOutputStream dos, byte[] key) {
+		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		Date date = new Date();
+		try {
+			// StringBuilder sb = new StringBuilder("10");
+			/** Send the message **/
+			String SendMessage = new String(key);
+					
+			dos.writeUTF(SendMessage);
+
+			System.out.println("Public key sent at ... " + SendMessage + "   "
+					+ dateFormat.format(date) + "Length of the message"
+					+ SendMessage.length());
+			System.out.println(socket.isClosed());
+			dos.flush();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}// End of try/catch block
+
+	} // End of sendPublicKeybyDOS
+
+	public static byte[] receivePublicKeybyDIS(DataInputStream dis)
+			throws IOException {
+		/** Date Format **/
+		DateFormat dateFormat = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+		Date date = new Date();
+		System.out.println(socket.isClosed());
+		String received = dis.readUTF();
+		/** Receive the message **/
+
+		System.out.println("Message received : " + received + " at ... "
+				+ dateFormat.format(date) + " \n" + received);
+		return received.getBytes();
+
+	} // End of receivePublicKey
 
 } // End of zSender
